@@ -10,6 +10,68 @@ import plotly.graph_objects as go
 from data_processor import DataProcessor
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Helper para interactividad: Click en gráficos → Ver datos fuente
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _preparar_datos_para_click(df_filtrado, columnas_clave):
+    """
+    Prepara un DataFrame añadiendo una columna única para rastreo de clicks.
+    """
+    df_click = df_filtrado.copy()
+    # Crear identificador único combinando columnas clave
+    df_click['_click_id'] = df_click[columnas_clave].astype(str).agg('_'.join, axis=1)
+    return df_click
+
+
+def mostrar_datos_fuente(df_filtrado, seleccion, columnas_filtro, titulo_seccion="🔍 Datos Fuente"):
+    """
+    Muestra en un expandable los registros que generaron el elemento clickeado.
+    
+    Args:
+        df_filtrado: DataFrame completo filtrado
+        seleccion: Dict con la información del punto seleccionado (de st.plotly_chart con on_select)
+        columnas_filtro: Lista de tuplas [(col_df, valor_seleccion), ...] para filtrar
+        titulo_seccion: Título para la sección de datos
+    """
+    if not seleccion or 'points' not in seleccion or not seleccion['points']:
+        return
+    
+    punto = seleccion['points'][0]
+    
+    # Extraer valores de customdata si existen
+    if 'customdata' in punto:
+        with st.expander(titulo_seccion, expanded=True):
+            # Construir filtros dinámicos
+            df_resultado = df_filtrado.copy()
+            for i, (col, _) in enumerate(columnas_filtro):
+                if i < len(punto.get('customdata', [])):
+                    valor = punto['customdata'][i]
+                    if pd.notna(valor):
+                        df_resultado = df_resultado[df_resultado[col].astype(str) == str(valor)]
+            
+            st.caption(f"Registros que generan este punto: {len(df_resultado)}")
+            
+            # Columnas relevantes para mostrar
+            cols_display = [c for c in ['No_Orden', 'Cliente', 'Ciudad', 'Transportadora', 
+                                       'Fecha_Entrega', 'Cumple_NNS', 'Desvio_Entrega', 'Area_Incumple'] 
+                           if c in df_resultado.columns]
+            
+            st.dataframe(df_resultado[cols_display].head(50), use_container_width=True, hide_index=True)
+            
+            # Botón de exportación
+            if len(df_resultado) > 0:
+                import io
+                buf = io.BytesIO()
+                df_resultado.to_excel(buf, index=False, sheet_name='Datos_Fuente')
+                buf.seek(0)
+                st.download_button(
+                    "📥 Exportar estos datos",
+                    data=buf,
+                    file_name="datos_fuente_seleccion.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Configuración
 # ─────────────────────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -230,6 +292,9 @@ def sidebar_filtros(df_procesado):
         df_f = df_f[df_f['Ciudad'].astype(str).isin(sel_ciudad)]
 
     st.sidebar.markdown("---")
+    st.sidebar.markdown("### 🛠️ Herramientas")
+    debug_mode = st.sidebar.checkbox("Modo Debug (Ver Eventos)", value=False)
+    
     curr_rows = len(df_f)
     st.sidebar.caption(f"📊 Registros: {curr_rows:,} / {total_rows:,}")
     
@@ -237,7 +302,7 @@ def sidebar_filtros(df_procesado):
         st.cache_data.clear()
         st.rerun()
 
-    return df_f
+    return df_f, debug_mode
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -295,28 +360,37 @@ def mostrar_kpis(ind_global, ind_filtrado, etiqueta_filtro="Selección"):
 # ─────────────────────────────────────────────────────────────────────────────
 # Gráficos
 # ─────────────────────────────────────────────────────────────────────────────
-def mostrar_graficos(processor, df_filtrado):
+def mostrar_graficos(processor, df_filtrado, debug_mode=False):
     # ── Fila 1: Pie NNS + Bar desvíos ──
     col1, col2 = st.columns(2)
 
     with col1:
         st.markdown("### 🎯 Cumplimiento NNS")
-        counts = df_filtrado['Cumple_NNS'].value_counts()
-        fig = go.Figure(go.Pie(
-            labels=counts.index.tolist(),
-            values=counts.values.tolist(),
-            hole=0.55,
-            marker_colors=[
-                COLOR_CUMPLE if l == 'Cumple'
-                else COLOR_NO_CUMPLE if l == 'No cumple'
-                else COLOR_PTE
-                for l in counts.index
-            ],
-            textinfo='percent+label',
-            textfont_size=13,
-        ))
-        fig.update_layout(**fig_base(), title_text='', showlegend=True)
-        st.plotly_chart(fig, use_container_width=True)
+        counts = df_filtrado['Cumple_NNS'].value_counts().reset_index()
+        counts.columns = ['Categoria', 'Cantidad']
+        
+        # Usar px para mejor manejo de custom_data y on_select
+        fig = px.pie(
+            counts, names='Categoria', values='Cantidad',
+            hole=0.55, color='Categoria',
+            color_discrete_map={'Cumple': COLOR_CUMPLE, 'No cumple': COLOR_NO_CUMPLE, 'PTE': COLOR_PTE},
+            template=PLOTLY_TEMPLATE,
+            custom_data=['Categoria']
+        )
+        fig.update_layout(margin=dict(l=20, r=20, t=20, b=20), showlegend=True)
+        
+        sel_nns = st.plotly_chart(fig, use_container_width=True, on_select="rerun", key="chart_nns_v5")
+        
+        if debug_mode and sel_nns:
+            st.write("Debug NNS Select:", sel_nns)
+
+        # Drill-down NNS
+        if sel_nns and 'selection' in sel_nns:
+            mostrar_datos_fuente(df_filtrado, sel_nns['selection'], 
+                                [('Cumple_NNS', 'Categoria')], 
+                                titulo_seccion="🎯 Detalle de Pedidos por Cumplimiento")
+        else:
+            st.caption("💡 Haz clic en una rodaja para ver el detalle")
 
     with col2:
         st.markdown("### 📊 Desvíos en Despacho vs Entrega")
@@ -342,25 +416,33 @@ def mostrar_graficos(processor, df_filtrado):
     analisis_c = processor.get_analisis_ciudad(df_filtrado)
     if analisis_c is not None and len(analisis_c) > 0:
         top_c = analisis_c.head(12).copy()
-        fig3 = go.Figure()
-        fig3.add_trace(go.Bar(
-            x=top_c['Ciudad'],
-            y=top_c['Pct_Cumplimiento'],
-            marker_color=[
-                COLOR_CUMPLE if v >= 80 else COLOR_PTE if v >= 60 else COLOR_NO_CUMPLE
-                for v in top_c['Pct_Cumplimiento']
-            ],
-            text=[f"{v}%" for v in top_c['Pct_Cumplimiento']],
-            textposition='outside',
-            customdata=top_c[['Total', 'No_Cumplen']].values,
-            hovertemplate='<b>%{x}</b><br>Cumplimiento: %{y:.1f}%<br>'
-                          'Total: %{customdata[0]}<br>No cumplen: %{customdata[1]}<extra></extra>'
-        ))
+        fig3 = px.bar(
+            top_c, x='Ciudad', y='Pct_Cumplimiento',
+            color='Pct_Cumplimiento',
+            color_continuous_scale=['#ef4444', '#f59e0b', '#22c55e'],
+            text='Pct_Cumplimiento',
+            custom_data=['Ciudad', 'Total'],
+            template=PLOTLY_TEMPLATE,
+            hover_data=['Total', 'No_Cumplen']
+        )
+        fig3.update_traces(texttemplate='%{text}%', textposition='outside')
         fig3.add_hline(y=80, line_dash='dash', line_color='#f59e0b',
                        annotation_text='Meta 80%', annotation_position='top left')
         fig3.update_layout(**fig_base(), yaxis_title='% Cumplimiento',
-                           yaxis_range=[0, 115])
-        st.plotly_chart(fig3, use_container_width=True)
+                           yaxis_range=[0, 115], coloraxis_showscale=False)
+        
+        sel_c = st.plotly_chart(fig3, use_container_width=True, on_select="rerun", key="chart_ciudad_v5")
+        
+        if debug_mode and sel_c:
+            st.write("Debug Ciudad Select:", sel_c)
+
+        # Drill-down Ciudad
+        if sel_c and 'selection' in sel_c:
+            mostrar_datos_fuente(df_filtrado, sel_c['selection'], 
+                                [('Ciudad', 'Ciudad')], 
+                                titulo_seccion="📍 Detalle de Pedidos por Ciudad")
+        else:
+            st.caption("💡 Haz clic en una barra para ver detalle")
 
     # ── Fila 3: Transportadora + Área ──
     col3, col4 = st.columns(2)
@@ -369,41 +451,64 @@ def mostrar_graficos(processor, df_filtrado):
         st.markdown("### 🚚 Desempeño por Transportadora")
         analisis_t = processor.get_analisis_transportadora(df_filtrado)
         if analisis_t is not None and len(analisis_t) > 0:
+            top_t = analisis_t.head(8).copy()
             fig4 = px.bar(
-                analisis_t.head(8),
+                top_t,
                 x='Transportadora', y='Pct_Cumplimiento',
                 color='Desvio_Prom',
                 color_continuous_scale=['#22c55e', '#f59e0b', '#ef4444'],
                 text='Pct_Cumplimiento',
-                custom_data=['Total', 'No_Cumplen', 'Desvio_Prom'],
+                custom_data=['Transportadora'],
                 template=PLOTLY_TEMPLATE,
             )
             fig4.update_traces(
                 texttemplate='%{text:.1f}%',
                 textposition='outside',
                 hovertemplate='<b>%{x}</b><br>Cumplimiento: %{y:.1f}%<br>'
-                              'Total: %{customdata[0]}<br>No cumplen: %{customdata[1]}<br>'
-                              'Desvío prom: %{customdata[2]:.1f}d<extra></extra>'
+                              'Desvío prom: %{customdata[0]:.1f}d<extra></extra>'
             )
             fig4.update_layout(**fig_base(), yaxis_title='% Cumplimiento',
                                yaxis_range=[0, 115], coloraxis_showscale=False)
             fig4.add_hline(y=80, line_dash='dash', line_color='#f59e0b')
-            st.plotly_chart(fig4, use_container_width=True)
+            
+            sel_t = st.plotly_chart(fig4, use_container_width=True, on_select="rerun", key="chart_transp_v5")
+            
+            if debug_mode and sel_t:
+                st.write("Debug Transp Select:", sel_t)
+
+            # Drill-down Transportadora
+            if sel_t and 'selection' in sel_t:
+                mostrar_datos_fuente(df_filtrado, sel_t['selection'], 
+                                    [('Transportadora', 'Transportadora')], 
+                                    titulo_seccion="🚚 Detalle de Pedidos por Transportadora")
+            else:
+                st.caption("💡 Haz clic en una barra para ver detalle")
 
     with col4:
         st.markdown("### 🏢 Responsabilidad del Incumplimiento")
         inc = processor.get_pedidos_incumplimiento(df_filtrado)
         if inc is not None and len(inc) > 0 and 'Area_Incumple' in inc.columns:
-            areas = inc['Area_Incumple'].value_counts()
-            fig5 = go.Figure(go.Pie(
-                labels=areas.index.tolist(),
-                values=areas.values.tolist(),
-                hole=0.45,
-                textinfo='percent+label',
-                textfont_size=11,
-            ))
+            areas = inc['Area_Incumple'].value_counts().reset_index()
+            areas.columns = ['Area', 'Cantidad']
+            fig5 = px.pie(
+                areas, names='Area', values='Cantidad',
+                hole=0.45, template=PLOTLY_TEMPLATE,
+                custom_data=['Area']
+            )
             fig5.update_layout(**fig_base())
-            st.plotly_chart(fig5, use_container_width=True)
+            
+            sel_a = st.plotly_chart(fig5, use_container_width=True, on_select="rerun", key="chart_area_v5")
+            
+            if debug_mode and sel_a:
+                st.write("Debug Area Select:", sel_a)
+
+            # Drill-down Área
+            if sel_a and 'selection' in sel_a:
+                mostrar_datos_fuente(df_filtrado, sel_a['selection'], 
+                                    [('Area_Incumple', 'Area')], 
+                                    titulo_seccion="🏢 Detalle de Responsabilidad")
+            else:
+                st.caption("💡 Haz clic para ver detalle del área")
         else:
             st.success("🎉 Sin incumplimientos en el período seleccionado.")
 
@@ -587,27 +692,33 @@ def main():
         return
 
     # ── Sidebar filtros → df filtrado ──
-    df_filtrado = sidebar_filtros(df_procesado)
+    df_filtrado, debug_mode = sidebar_filtros(df_procesado)
 
-    # ── Exportar completo ──
+    # ── Mega Reporte (KPIs + Análisis + Datos) ──
     st.sidebar.markdown("---")
-    st.sidebar.markdown("### 📥 Exportar")
+    st.sidebar.markdown("### 📊 Reportes")
     try:
-        import io
-        buf = io.BytesIO()
-        df_filtrado.to_excel(buf, index=False, sheet_name='Base Analizada')
-        buf.seek(0)
-        st.sidebar.download_button(
-            "⬇️ Descargar Base Analizada",
-            data=buf,
-            file_name="Base_Ventas_Analizada.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-    except Exception:
-        pass
+        ind_global = processor.get_indicadores(df_procesado)
+        ind_filtrado = processor.get_indicadores(df_filtrado)
+        
+        if ind_filtrado:
+            btn_label = "📥 Descargar Mega Reporte"
+            if len(df_filtrado) < len(df_procesado):
+                btn_label = "📥 Descargar Reporte Filtrado"
+                
+            mega_buf = processor.generate_mega_report(df_filtrado, ind_filtrado, ind_global)
+            st.sidebar.download_button(
+                btn_label,
+                data=mega_buf,
+                file_name="Reporte_TECU_Analisis.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                help="Excel con KPIs, Recomendaciones, Análisis de Ciudad/Transp y Base de datos."
+            )
+    except Exception as e:
+        st.sidebar.error(f"Error generando reporte: {e}")
 
     # ── Header ──
-    st.markdown("# 📊 Dashboard de Despachos TECU Aura `v1.3` 🚀")
+    st.markdown("# 📊 Dashboard de Despachos TECU Aura `v1.7` 🚀")
     if len(df_filtrado) < len(df_procesado):
         st.info(f"💡 Filtro Activo: Viendo {len(df_filtrado)} de {len(df_procesado)} registros.")
     st.caption(
@@ -636,7 +747,7 @@ def main():
     st.markdown("---")
 
     # ── Gráficos ──
-    mostrar_graficos(processor, df_filtrado)
+    mostrar_graficos(processor, df_filtrado, debug_mode)
     st.markdown("---")
 
     # ── Recomendaciones ──

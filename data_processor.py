@@ -378,8 +378,70 @@ class DataProcessor:
         return recs
 
     # ─────────────────────────────────────────
-    # Exportar
+    # MEGA REPORTE (Exportación v1.7)
     # ─────────────────────────────────────────
+    def generate_mega_report(self, df_filtrado, ind_filtrado, ind_global):
+        """
+        Genera un objeto BytesIO con un Excel de múltiples pestañas.
+        """
+        import io
+        buf = io.BytesIO()
+        
+        with pd.ExcelWriter(buf, engine='xlsxwriter') as writer:
+            # 1. Resumen Ejecutivo (KPIs)
+            resumen_data = {
+                'Métrica': [
+                    'Total Pedidos', '% Cumplimiento NNS', 'Pedidos Cumplen', 
+                    'Pedidos No Cumplen', 'Pendientes (PTE)',
+                    'Pedidos con Desvío Despacho', 'Promedio Desvío Despacho (días)',
+                    'Pedidos con Desvío Entrega', 'Promedio Desvío Entrega (días)'
+                ],
+                'Selección Actual': [
+                    ind_filtrado['total_pedidos'], f"{ind_filtrado['pct_cumplimiento']}%",
+                    ind_filtrado['cumplen_nns'], ind_filtrado['no_cumplen_nns'],
+                    ind_filtrado['pendientes'], ind_filtrado['con_desvio_despacho'],
+                    ind_filtrado['promedio_desvio_despacho'], ind_filtrado['con_desvio_entrega'],
+                    ind_filtrado['promedio_desvio_entrega']
+                ],
+                'Total General': [
+                    ind_global['total_pedidos'], f"{ind_global['pct_cumplimiento']}%",
+                    ind_global['cumplen_nns'], ind_global['no_cumplen_nns'],
+                    ind_global['pendientes'], ind_global['con_desvio_despacho'],
+                    ind_global['promedio_desvio_despacho'], ind_global['con_desvio_entrega'],
+                    ind_global['promedio_desvio_entrega']
+                ]
+            }
+            pd.DataFrame(resumen_data).to_excel(writer, sheet_name='Resumen Ejecutivo', index=False)
+            
+            # 2. Recomendaciones
+            recs = self.get_recomendaciones(df_filtrado)
+            if recs:
+                recs_df = pd.DataFrame(recs, columns=['Título', 'Detalle', 'Nivel'])
+                recs_df.to_excel(writer, sheet_name='Hallazgos y Recomendaciones', index=False)
+            
+            # 3. Análisis por Ciudad
+            df_ciud = self.get_analisis_ciudad(df_filtrado)
+            if df_ciud is not None:
+                df_ciud.to_excel(writer, sheet_name='Análisis por Ciudad', index=False)
+                
+            # 4. Análisis por Transportadora
+            df_trans = self.get_analisis_transportadora(df_filtrado)
+            if df_trans is not None:
+                df_trans.to_excel(writer, sheet_name='Análisis por Transportadora', index=False)
+                
+            # 5. Base Completa (Filtrada)
+            df_filtrado.to_excel(writer, sheet_name='Base de Datos (Selección)', index=False)
+            
+            # Ajustar anchos de columna (opcional pero profesional)
+            workbook = writer.book
+            header_format = workbook.add_format({'bold': True, 'bg_color': '#D7E4BC', 'border': 1})
+            
+            for sheet in writer.sheets.values():
+                sheet.set_column('A:Z', 20)
+
+        buf.seek(0)
+        return buf
+
     def exportar_excel(self, path, df=None):
         if df is None:
             df = self.df_procesado
