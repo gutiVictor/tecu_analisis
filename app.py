@@ -97,8 +97,8 @@ PLOTLY_TEMPLATE = 'plotly_dark'
 # ─────────────────────────────────────────────────────────────────────────────
 
 @st.cache_data(show_spinner=False, ttl=3600)
-def _cargar_df_nuclear_v7(archivo_bytes, nombre_archivo):
-    """Busting cache and ensuring fresh data processing."""
+def _cargar_df_nuclear_v7(archivo_bytes, nombre_archivo, sla_almacen=1, sla_principal=3, sla_otras=5):
+    """Busting cache and ensuring fresh data processing with SLA params."""
     import io
     try:
         xl = pd.ExcelFile(io.BytesIO(archivo_bytes))
@@ -126,7 +126,7 @@ def _cargar_df_nuclear_v7(archivo_bytes, nombre_archivo):
         # Procesar y devolver solo el DataFrame
         from data_processor import DataProcessor as _DP
         p = _DP(df)
-        df_procesado = p.procesar()
+        df_procesado = p.procesar(sla_almacen, sla_principal, sla_otras)
         return df_procesado, hoja
 
     except Exception as e:
@@ -134,15 +134,15 @@ def _cargar_df_nuclear_v7(archivo_bytes, nombre_archivo):
         return None, None
 
 
-def cargar_y_procesar(uploaded_file):
-    """Wrapper que usa getvalue() (seguro en reruns) y crea un processor fresco."""
+def cargar_y_procesar(uploaded_file, sla_almacen=1, sla_principal=3, sla_otras=5):
+    """Wrapper que usa getvalue() y aplica los parámetros de SLA seleccionados."""
     archivo_bytes = uploaded_file.getvalue() 
-    df_procesado, hoja = _cargar_df_nuclear_v7(archivo_bytes, uploaded_file.name)
+    df_procesado, hoja = _cargar_df_nuclear_v7(archivo_bytes, uploaded_file.name, sla_almacen, sla_principal, sla_otras)
     if df_procesado is None:
         return None, None, None
-    # Crear processor FRESCO con df ya procesado (no llama a procesar() de nuevo)
+    # Crear processor FRESCO con df ya procesado
     processor = DataProcessor(df_procesado)
-    processor.df_procesado = df_procesado      # inyectar df directamente
+    processor.df_procesado = df_procesado
     return processor, df_procesado, hoja
 
 
@@ -571,9 +571,16 @@ def main():
         st.markdown("\n#### 👆 Sube el archivo Excel en el panel izquierdo para comenzar.")
         return
 
+    # ── Sidebar Configuración SLA ──
+    st.sidebar.markdown("### ⚙️ Configuración SLA")
+    sl_alm = st.sidebar.slider("Límite Almacén (días)", 1, 5, 1, help="Días hábiles máximos para despacho")
+    sl_pri = st.sidebar.slider("SLA Ciudades Prales (días)", 1, 3, 3, help="Ej. Bogotá, Medellín, Cali")
+    sl_otr = st.sidebar.slider("SLA Otras Ciudades (días)", 3, 5, 5)
+    st.sidebar.markdown("---")
+
     # ── Procesar datos ──
     with st.spinner("⏳ Procesando datos..."):
-        processor, df_procesado, hoja = cargar_y_procesar(uploaded)
+        processor, df_procesado, hoja = cargar_y_procesar(uploaded, sl_alm, sl_pri, sl_otr)
 
     if processor is None or df_procesado is None:
         st.error("No se pudo procesar el archivo. Verifica el formato.")

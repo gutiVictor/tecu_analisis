@@ -66,8 +66,8 @@ class DataProcessor:
     # ─────────────────────────────────────────
     # Pipeline principal
     # ─────────────────────────────────────────
-    def procesar(self):
-        """Ejecuta todo el pipeline de procesamiento."""
+    def procesar(self, sla_almacen=1, sla_principal=3, sla_otras=5):
+        """Ejecuta todo el pipeline de procesamiento con parámetros de SLA."""
         df = self.df_original.copy()
         df.columns = df.columns.str.strip()
 
@@ -87,14 +87,15 @@ class DataProcessor:
             lambda r: calcular_dias_habiles(r['Fecha'], r['Fecha_Despacho']), axis=1
         )
         df['Dias_Entrega_Hab'] = df.apply(
-            lambda r: calcular_dias_habiles(r['Fecha'], r['Fecha_Entrega']), axis=1
+            lambda r: calcular_dias_habiles(r['Fecha_Despacho'], r['Fecha_Entrega']), axis=1
         )
 
         # ── SLA y desvíos ─────────────────────
-        SLA_DESPACHO = 1  # 1 día hábil para alistar y despachar
-        df['SLA_Entrega'] = df['Ciudad'].apply(determinar_sla_entrega)
+        # Nota: El desvío de entrega se calcula DESDE EL DESPACHO para evaluar transportadora
+        df['SLA_Entrega'] = df['Ciudad'].apply(lambda c: determinar_sla_entrega(c, sla_principal, sla_otras))
+        
         df['Desvio_Despacho'] = df.apply(
-            lambda r: (r['Dias_Despacho_Hab'] - SLA_DESPACHO)
+            lambda r: (r['Dias_Despacho_Hab'] - sla_almacen)
             if pd.notna(r['Dias_Despacho_Hab']) else None, axis=1
         )
         df['Desvio_Entrega'] = df.apply(
@@ -103,10 +104,16 @@ class DataProcessor:
         )
 
         # ── Cumplimiento NNS ──────────────────
-        df['Cumple_NNS'] = df['Desvio_Entrega'].apply(evaluar_cumple_nns)
-        df['Desvio_NNS_dias'] = df['Desvio_Entrega'].apply(
-            lambda x: max(0, x) if pd.notna(x) else None
-        )
+        # NNS se basa en el cumplimiento global (Compra -> Entrega)
+        # Recalculamos días totales compra->entrega para el indicador NNS
+        def _get_nns(r):
+            dias_totales = calcular_dias_habiles(r['Fecha'], r['Fecha_Entrega'])
+            if pd.isna(dias_totales): return 'PTE'
+            # El SLA total es SLA_Almacén + SLA_Ciudad
+            sla_total = sla_almacen + r['SLA_Entrega']
+            return 'Cumple' if dias_totales <= sla_total else 'No cumple'
+
+        df['Cumple_NNS'] = df.apply(_get_nns, axis=1)
 
         # ── Área responsable ──────────────────
         df['Area_Incumple'] = df.apply(
@@ -116,12 +123,11 @@ class DataProcessor:
         )
 
         # ── Mes para filtros ──────────────────
-        # Mes_Sort como string "YYYY-MM" para ordenación fácil
         df['Mes_Sort'] = df['Fecha'].dt.strftime('%Y-%m')
         
-        # Mes_Label como "Dic-24"
         def _fmt_mes(x):
             if pd.isna(x): return None
+            # MESES_ES importado de arriba
             m = MESES_ES.get(x.month, str(x.month))
             y = str(x.year)[2:]
             return f"{m}-{y}"

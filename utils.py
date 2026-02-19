@@ -109,14 +109,14 @@ def calcular_dias_habiles(fecha_inicio, fecha_fin):
     return dias_habiles
 
 
-def determinar_sla_entrega(ciudad):
+def determinar_sla_entrega(ciudad, principal_val=3, other_val=5):
     """
     SLA según ciudad:
-      - 3 días hábiles → Bogotá, Medellín, Cali y alrededores
-      - 5 días hábiles → Todas las demás
+      - principal_val (ej 3) → Bogotá, Medellín, Cali y alrededores
+      - other_val (ej 5) → Todas las demás
     """
     if pd.isna(ciudad):
-        return 5
+        return other_val
 
     ciudad_str = str(ciudad).strip().lower()
     # Eliminar tildes comunes para comparación robusta
@@ -128,8 +128,8 @@ def determinar_sla_entrega(ciudad):
         c_norm = (c.replace('á', 'a').replace('é', 'e')
                    .replace('í', 'i').replace('ó', 'o').replace('ú', 'u'))
         if c_norm in ciudad_norm:
-            return 3
-    return 5
+            return principal_val
+    return other_val
 
 
 def determinar_area_incumple(desvio_despacho, desvio_entrega, transportadora):
