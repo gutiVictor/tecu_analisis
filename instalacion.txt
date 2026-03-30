@@ -1,0 +1,41 @@
+Para correr la aplicación en otro PC de forma exitosa, he preparado un archivo llamado 
+requirements.txt
+ en la carpeta del proyecto que contiene todas las librerías necesarias.
+
+Aquí tienes los pasos clave y recomendaciones:
+
+1. Preparación del Entorno (En el nuevo PC)
+Antes de lanzar la app, abre una terminal en la carpeta del proyecto en VS Code y ejecuta:
+
+bash
+pip install -r requirements.txt
+Esto instalará automáticamente: Streamlit, Pandas, Plotly (gráficos), Openpyxl (lectura de Excel) y XlsxWriter (para el reporte).
+
+2. Extensiones Recomendadas en VS Code
+Para que sea más cómodo trabajar, te sugiero instalar estas extensiones desde el Marketplace de VS Code:
+
+Python (Microsoft): Indispensable para que VS Code entienda el código, te dé sugerencias y detecte errores.
+Pylance (Microsoft): Viene junto con la de Python, mejora mucho la velocidad y las sugerencias de código.
+Excel Viewer: Te permite ver los archivos .xlsx directamente en VS Code sin abrir Excel.
+Error Lens (Opcional): Muestra los errores de código directamente en la línea donde ocurren, muy útil para debugging rápido.
+3. Cómo ejecutar la App
+Una vez instaladas las librerías, el comando siempre es el mismo:
+
+bash
+python -m streamlit run app.py
+💡 Tips Adicionales:
+Rutas: He programado la app para que use rutas relativas, así que funcionará sin importar en qué disco o carpeta pongas el proyecto.
+Versión de Python: Asegúrate de que el nuevo PC tenga Python 3.9 o superior instalado.
+Archivos: Recuerda llevarte todos los archivos: 
+app.py
+, 
+data_processor.py
+, 
+utils.py
+ y el nuevo 
+requirements.txt
+.
+¡Con esto ya tienes todo lo necesario para que tu dashboard de TECU ruede en cualquier máquina!
+
+Good
+Bad
