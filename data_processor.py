@@ -236,7 +236,7 @@ class DataProcessor:
             No_Cumplen=('Cumple_NNS', lambda x: (x == 'No cumple').sum())
         ).reset_index()
         
-        analisis['Pct_Cumplimiento'] = round(analisis['Cumplen'] / analisis['Total'] * 100, 1)
+        analisis['Pct_Cumplimiento'] = (analisis['Cumplen'].astype(float) / analisis['Total'].astype(float) * 100).round(1).fillna(0)
         analisis = analisis.sort_values('Total', ascending=False)
         
         return analisis
@@ -252,8 +252,8 @@ class DataProcessor:
             Desvio_Prom=('Desvio_Entrega', 'mean')
         ).reset_index()
         
-        analisis['Pct_Cumplimiento'] = round(analisis['Cumplen'] / analisis['Total'] * 100, 1)
-        analisis['Desvio_Prom'] = analisis['Desvio_Prom'].fillna(0).round(1)
+        analisis['Pct_Cumplimiento'] = (analisis['Cumplen'].astype(float) / analisis['Total'].astype(float) * 100).round(1).fillna(0)
+        analisis['Desvio_Prom'] = pd.to_numeric(analisis['Desvio_Prom'], errors='coerce').fillna(0).round(1)
         analisis = analisis.sort_values('Total', ascending=False)
         
         return analisis
@@ -276,7 +276,7 @@ class DataProcessor:
             Cumplen=('Cumple_NNS', lambda x: (x == 'Cumple').sum())
         ).reset_index()
         
-        analisis['Pct_Cumplimiento'] = round(analisis['Cumplen'] / analisis['Total'] * 100, 1)
+        analisis['Pct_Cumplimiento'] = (analisis['Cumplen'].astype(float) / analisis['Total'].astype(float) * 100).round(1).fillna(0)
         analisis = analisis.sort_values('Mes_Sort')
         
         return analisis
