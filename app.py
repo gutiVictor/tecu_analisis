@@ -66,7 +66,7 @@ PLOTLY_TEMPLATE = 'plotly_dark'
 
 # Umbrales de negocio para alertas automáticas (configurables)
 UMBRALES_ALERTAS = {
-    'cumplimiento_minimo': 80.0,      # % mínimo de cumplimiento para alerta
+    'cumplimiento_minimo': 95.0,      # % mínimo de cumplimiento para alerta
     'desvio_entrega_max': 5.0,        # Días máximos de desvío promedio
     'transportadora_min_perf': 60.0,  # % mínimo de desempeño por transportadora
     'pendientes_max': 10              # Máximo de pedidos PTE antes de alertar
@@ -921,8 +921,8 @@ def mostrar_graficos(processor, df_filtrado: pd.DataFrame, debug_mode: bool = Fa
                 yaxis=dict(title='Frecuencia', side='left'),
                 yaxis2=dict(title='% Acumulado', overlaying='y', side='right', range=[0, 110]),
                 annotations=[dict(
-                    x=0.5, y=95, xref='paper', yref='y2',
-                    text='Meta 95%', showarrow=True, arrowhead=2,
+                    x=0.5, y=80, xref='paper', yref='y2',
+                    text='Meta 80%', showarrow=True, arrowhead=2,
                     ax=0, ay=-40, font=dict(color=COLOR_PTE)
                 )],
                 xaxis_tickangle=-45  # Rotar etiquetas X para mejor legibilidad
@@ -988,8 +988,8 @@ def mostrar_graficos(processor, df_filtrado: pd.DataFrame, debug_mode: bool = Fa
     fig_cat.update_traces(textposition='top center', marker=dict(sizemode='diameter'))
     fig_cat.update_layout(**fig_base(), yaxis_title='Valor Total Despachos (COP)')
         
-        # Línea de referencia: meta de 95% cumplimiento
-    fig_cat.add_vline(x=80, line_dash='dash', line_color=COLOR_PTE, annotation_text='Meta 95%')
+        # Línea de referencia: meta de 80% cumplimiento
+    fig_cat.add_vline(x=80, line_dash='dash', line_color=COLOR_PTE, annotation_text='Meta 80%')
         
     st.plotly_chart(fig_cat, use_container_width=True)
         
