@@ -752,9 +752,9 @@ def mostrar_graficos(processor, df_filtrado: pd.DataFrame, debug_mode: bool = Fa
             hover_data=['Total', 'No_Cumplen']  # Info adicional al pasar mouse
         )
         fig3.update_traces(texttemplate='%{text}%', textposition='outside')
-        # Línea de referencia: meta del 80% de cumplimiento
-        fig3.add_hline(y=80, line_dash='dash', line_color=COLOR_PTE,
-                       annotation_text='Meta 80%', annotation_position='top left')
+        # Línea de referencia: meta del 95% de cumplimiento
+        fig3.add_hline(y=95, line_dash='dash', line_color=COLOR_PTE,
+                       annotation_text='Meta 95%', annotation_position='top left')
         fig3.update_layout(**fig_base(), yaxis_title='% Cumplimiento',
                            yaxis_range=[0, 115], coloraxis_showscale=False)
         
@@ -798,7 +798,7 @@ def mostrar_graficos(processor, df_filtrado: pd.DataFrame, debug_mode: bool = Fa
             )
             fig4.update_layout(**fig_base(), yaxis_title='% Cumplimiento',
                                yaxis_range=[0, 115], coloraxis_showscale=False)
-            fig4.add_hline(y=80, line_dash='dash', line_color=COLOR_PTE)
+            fig4.add_hline(y=95, line_dash='dash', line_color=COLOR_PTE)
             
             sel_t = st.plotly_chart(fig4, use_container_width=True, on_select="rerun", key="chart_transp_v5")
             
@@ -869,9 +869,9 @@ def mostrar_graficos(processor, df_filtrado: pd.DataFrame, debug_mode: bool = Fa
             textfont=dict(size=10, color='#a5b4fc'),
         ))
         
-        # Línea de referencia: meta del 80%
-        fig6.add_hline(y=80, line_dash='dash', line_color=COLOR_PTE,
-                       annotation_text='Meta 80%', annotation_position='bottom right')
+        # Línea de referencia: meta del 95%
+        fig6.add_hline(y=95, line_dash='dash', line_color=COLOR_PTE,
+                       annotation_text='Meta 95%', annotation_position='bottom right')
         
         # Configurar layout con dos ejes Y superpuestos
         layout = fig_base()
@@ -921,8 +921,8 @@ def mostrar_graficos(processor, df_filtrado: pd.DataFrame, debug_mode: bool = Fa
                 yaxis=dict(title='Frecuencia', side='left'),
                 yaxis2=dict(title='% Acumulado', overlaying='y', side='right', range=[0, 110]),
                 annotations=[dict(
-                    x=0.5, y=80, xref='paper', yref='y2',
-                    text='Meta 80%', showarrow=True, arrowhead=2,
+                    x=0.5, y=95, xref='paper', yref='y2',
+                    text='Meta 95%', showarrow=True, arrowhead=2,
                     ax=0, ay=-40, font=dict(color=COLOR_PTE)
                 )],
                 xaxis_tickangle=-45  # Rotar etiquetas X para mejor legibilidad
@@ -988,8 +988,8 @@ def mostrar_graficos(processor, df_filtrado: pd.DataFrame, debug_mode: bool = Fa
     fig_cat.update_traces(textposition='top center', marker=dict(sizemode='diameter'))
     fig_cat.update_layout(**fig_base(), yaxis_title='Valor Total Despachos (COP)')
         
-        # Línea de referencia: meta de 80% cumplimiento
-    fig_cat.add_vline(x=80, line_dash='dash', line_color=COLOR_PTE, annotation_text='Meta 80%')
+        # Línea de referencia: meta de 95% cumplimiento
+    fig_cat.add_vline(x=80, line_dash='dash', line_color=COLOR_PTE, annotation_text='Meta 95%')
         
     st.plotly_chart(fig_cat, use_container_width=True)
         

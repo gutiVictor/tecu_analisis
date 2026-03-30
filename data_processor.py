@@ -296,10 +296,10 @@ class DataProcessor:
                 f"El cumplimiento actual es {ind['pct_cumplimiento']}%. Revisar procesos urgentemente.",
                 "error"
             ))
-        elif ind['pct_cumplimiento'] < 80:
+        elif ind['pct_cumplimiento'] < 95:
             recs.append((
                 "⚠️ Cumplimiento por Debajo de Meta",
-                f"El cumplimiento es {ind['pct_cumplimiento']}% (meta: 80%). Enfocar esfuerzos en reducir desvíos.",
+                f"El cumplimiento es {ind['pct_cumplimiento']}% (meta: 95%). Enfocar esfuerzos en reducir desvíos.",
                 "warning"
             ))
         else:
