@@ -1,0 +1,343 @@
+2026-03-30 13:38:43,342 - INFO - 🚀 Aplicación TECU Dashboard iniciada
+2026-03-30 13:38:50,258 - INFO - 🚀 Aplicación TECU Dashboard iniciada
+2026-03-30 13:38:50,261 - INFO - Iniciando procesamiento con SLA: almacén=1, principal=3, otras=5
+2026-03-30 13:38:50,262 - INFO - Iniciando carga de archivo: Seguimiento gestion despachos TECU 2026 Indicadores.xlsx
+2026-03-30 13:38:50,417 - INFO - Hoja detectada: Base Ventas
+2026-03-30 13:38:50,469 - INFO - Fila de encabezado detectada: 3
+2026-03-30 13:38:50,554 - INFO - DataFrame cargado: 186 filas, 26 columnas
+2026-03-30 13:38:50,575 - INFO - Procesamiento completado: 166 registros válidos
+2026-03-30 13:40:58,297 - INFO - 🚀 Aplicación TECU Dashboard iniciada
+2026-03-30 13:41:02,035 - INFO - 🚀 Aplicación TECU Dashboard iniciada
+2026-03-30 13:41:02,039 - INFO - Iniciando procesamiento con SLA: almacén=1, principal=3, otras=5
+2026-03-30 13:43:06,778 - INFO - 🚀 Aplicación TECU Dashboard iniciada
+2026-03-30 13:43:11,298 - INFO - 🚀 Aplicación TECU Dashboard iniciada
+2026-03-30 13:43:11,302 - INFO - Iniciando procesamiento con SLA: almacén=1, principal=3, otras=5
+2026-03-30 13:43:11,303 - INFO - Iniciando carga de archivo: Seguimiento gestion despachos TECU 2026 Indicadores.xlsx
+2026-03-30 13:43:11,450 - INFO - Hoja detectada: Base Ventas
+2026-03-30 13:43:11,502 - INFO - Fila de encabezado detectada: 3
+2026-03-30 13:43:11,586 - INFO - DataFrame cargado: 186 filas, 26 columnas
+2026-03-30 13:43:11,605 - INFO - Procesamiento completado: 166 registros válidos
+2026-03-30 13:43:11,613 - INFO - Filtros aplicados: 166 registros de 166 totales
+2026-03-30 13:43:11,770 - ERROR - Error generando reporte avanzado: "Column(s) ['No orden'] do not exist"
+Traceback (most recent call last):
+  File "C:\Users\AUDAVIALL\Desktop\tecu2\app.py", line 1394, in main
+    mega_buf = generate_report_advanced(df_filtrado, ind_filtrado, ind_global, processor)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\AUDAVIALL\Desktop\tecu2\app.py", line 1274, in generate_report_advanced
+    cat_analysis = df_filtrado.groupby('Categoria').agg({
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\groupby\generic.py", line 1432, in aggregate
+    result = op.agg()
+             ^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 190, in agg
+    return self.agg_dict_like()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 423, in agg_dict_like
+    return self.agg_or_apply_dict_like(op_name="agg")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 1608, in agg_or_apply_dict_like
+    result_index, result_data = self.compute_dict_like(
+                                ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 462, in compute_dict_like
+    func = self.normalize_dictlike_arg(op_name, selected_obj, func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 663, in normalize_dictlike_arg
+    raise KeyError(f"Column(s) {list(cols)} do not exist")
+KeyError: "Column(s) ['No orden'] do not exist"
+2026-03-30 13:43:55,527 - INFO - 🚀 Aplicación TECU Dashboard iniciada
+2026-03-30 13:43:55,529 - INFO - Iniciando procesamiento con SLA: almacén=1, principal=3, otras=5
+2026-03-30 13:43:55,539 - INFO - Filtros aplicados: 166 registros de 166 totales
+2026-03-30 13:43:55,630 - ERROR - Error generando reporte avanzado: "Column(s) ['No orden'] do not exist"
+Traceback (most recent call last):
+  File "C:\Users\AUDAVIALL\Desktop\tecu2\app.py", line 1394, in main
+    mega_buf = generate_report_advanced(df_filtrado, ind_filtrado, ind_global, processor)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\AUDAVIALL\Desktop\tecu2\app.py", line 1274, in generate_report_advanced
+    cat_analysis = df_filtrado.groupby('Categoria').agg({
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\groupby\generic.py", line 1432, in aggregate
+    result = op.agg()
+             ^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 190, in agg
+    return self.agg_dict_like()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 423, in agg_dict_like
+    return self.agg_or_apply_dict_like(op_name="agg")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 1608, in agg_or_apply_dict_like
+    result_index, result_data = self.compute_dict_like(
+                                ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 462, in compute_dict_like
+    func = self.normalize_dictlike_arg(op_name, selected_obj, func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 663, in normalize_dictlike_arg
+    raise KeyError(f"Column(s) {list(cols)} do not exist")
+KeyError: "Column(s) ['No orden'] do not exist"
+2026-03-30 13:44:02,423 - INFO - 🚀 Aplicación TECU Dashboard iniciada
+2026-03-30 13:44:02,426 - INFO - Iniciando procesamiento con SLA: almacén=1, principal=3, otras=5
+2026-03-30 13:44:02,435 - INFO - Filtros aplicados: 166 registros de 166 totales
+2026-03-30 13:44:02,527 - ERROR - Error generando reporte avanzado: "Column(s) ['No orden'] do not exist"
+Traceback (most recent call last):
+  File "C:\Users\AUDAVIALL\Desktop\tecu2\app.py", line 1394, in main
+    mega_buf = generate_report_advanced(df_filtrado, ind_filtrado, ind_global, processor)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\AUDAVIALL\Desktop\tecu2\app.py", line 1274, in generate_report_advanced
+    cat_analysis = df_filtrado.groupby('Categoria').agg({
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\groupby\generic.py", line 1432, in aggregate
+    result = op.agg()
+             ^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 190, in agg
+    return self.agg_dict_like()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 423, in agg_dict_like
+    return self.agg_or_apply_dict_like(op_name="agg")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 1608, in agg_or_apply_dict_like
+    result_index, result_data = self.compute_dict_like(
+                                ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 462, in compute_dict_like
+    func = self.normalize_dictlike_arg(op_name, selected_obj, func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 663, in normalize_dictlike_arg
+    raise KeyError(f"Column(s) {list(cols)} do not exist")
+KeyError: "Column(s) ['No orden'] do not exist"
+2026-03-30 13:45:49,832 - INFO - 🚀 Aplicación TECU Dashboard iniciada
+2026-03-30 13:45:49,835 - INFO - Iniciando procesamiento con SLA: almacén=1, principal=3, otras=5
+2026-03-30 13:45:49,844 - INFO - Filtros aplicados: 166 registros de 166 totales
+2026-03-30 13:45:49,948 - ERROR - Error generando reporte avanzado: "Column(s) ['No orden'] do not exist"
+Traceback (most recent call last):
+  File "C:\Users\AUDAVIALL\Desktop\tecu2\app.py", line 1394, in main
+    mega_buf = generate_report_advanced(df_filtrado, ind_filtrado, ind_global, processor)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\AUDAVIALL\Desktop\tecu2\app.py", line 1274, in generate_report_advanced
+    cat_analysis = df_filtrado.groupby('Categoria').agg({
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\groupby\generic.py", line 1432, in aggregate
+    result = op.agg()
+             ^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 190, in agg
+    return self.agg_dict_like()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 423, in agg_dict_like
+    return self.agg_or_apply_dict_like(op_name="agg")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 1608, in agg_or_apply_dict_like
+    result_index, result_data = self.compute_dict_like(
+                                ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 462, in compute_dict_like
+    func = self.normalize_dictlike_arg(op_name, selected_obj, func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 663, in normalize_dictlike_arg
+    raise KeyError(f"Column(s) {list(cols)} do not exist")
+KeyError: "Column(s) ['No orden'] do not exist"
+2026-03-30 13:45:53,136 - INFO - 🚀 Aplicación TECU Dashboard iniciada
+2026-03-30 13:45:53,140 - INFO - Iniciando procesamiento con SLA: almacén=1, principal=3, otras=5
+2026-03-30 13:45:53,148 - INFO - Filtros aplicados: 32 registros de 166 totales
+2026-03-30 13:45:53,180 - ERROR - Error generando reporte avanzado: "Column(s) ['No orden'] do not exist"
+Traceback (most recent call last):
+  File "C:\Users\AUDAVIALL\Desktop\tecu2\app.py", line 1394, in main
+    mega_buf = generate_report_advanced(df_filtrado, ind_filtrado, ind_global, processor)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\AUDAVIALL\Desktop\tecu2\app.py", line 1274, in generate_report_advanced
+    cat_analysis = df_filtrado.groupby('Categoria').agg({
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\groupby\generic.py", line 1432, in aggregate
+    result = op.agg()
+             ^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 190, in agg
+    return self.agg_dict_like()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 423, in agg_dict_like
+    return self.agg_or_apply_dict_like(op_name="agg")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 1608, in agg_or_apply_dict_like
+    result_index, result_data = self.compute_dict_like(
+                                ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 462, in compute_dict_like
+    func = self.normalize_dictlike_arg(op_name, selected_obj, func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 663, in normalize_dictlike_arg
+    raise KeyError(f"Column(s) {list(cols)} do not exist")
+KeyError: "Column(s) ['No orden'] do not exist"
+2026-03-30 13:45:54,208 - INFO - 🚀 Aplicación TECU Dashboard iniciada
+2026-03-30 13:45:54,212 - INFO - Iniciando procesamiento con SLA: almacén=1, principal=3, otras=5
+2026-03-30 13:45:54,220 - INFO - Filtros aplicados: 10 registros de 166 totales
+2026-03-30 13:45:54,243 - ERROR - Error generando reporte avanzado: "Column(s) ['No orden'] do not exist"
+Traceback (most recent call last):
+  File "C:\Users\AUDAVIALL\Desktop\tecu2\app.py", line 1394, in main
+    mega_buf = generate_report_advanced(df_filtrado, ind_filtrado, ind_global, processor)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\AUDAVIALL\Desktop\tecu2\app.py", line 1274, in generate_report_advanced
+    cat_analysis = df_filtrado.groupby('Categoria').agg({
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\groupby\generic.py", line 1432, in aggregate
+    result = op.agg()
+             ^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 190, in agg
+    return self.agg_dict_like()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 423, in agg_dict_like
+    return self.agg_or_apply_dict_like(op_name="agg")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 1608, in agg_or_apply_dict_like
+    result_index, result_data = self.compute_dict_like(
+                                ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 462, in compute_dict_like
+    func = self.normalize_dictlike_arg(op_name, selected_obj, func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 663, in normalize_dictlike_arg
+    raise KeyError(f"Column(s) {list(cols)} do not exist")
+KeyError: "Column(s) ['No orden'] do not exist"
+2026-03-30 13:51:02,940 - INFO - 🚀 Aplicación TECU Dashboard iniciada
+2026-03-30 13:51:06,483 - INFO - 🚀 Aplicación TECU Dashboard iniciada
+2026-03-30 13:51:06,487 - INFO - Iniciando procesamiento con SLA: almacén=1, principal=3, otras=5
+2026-03-30 13:51:06,488 - INFO - Iniciando carga de archivo: Seguimiento gestion despachos TECU 2026 Indicadores.xlsx
+2026-03-30 13:51:06,634 - INFO - Hoja detectada: Base Ventas
+2026-03-30 13:51:06,687 - INFO - Fila de encabezado detectada: 3
+2026-03-30 13:51:06,771 - INFO - DataFrame cargado: 186 filas, 26 columnas
+2026-03-30 13:51:06,789 - INFO - Procesamiento completado: 166 registros válidos
+2026-03-30 13:51:06,797 - INFO - Filtros aplicados: 166 registros de 166 totales
+2026-03-30 13:51:06,935 - ERROR - Error generando reporte avanzado: "Column(s) ['No orden'] do not exist"
+Traceback (most recent call last):
+  File "C:\Users\AUDAVIALL\Desktop\tecu2\app.py", line 1411, in main
+    mega_buf = generate_report_advanced(df_filtrado, ind_filtrado, ind_global, processor)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\AUDAVIALL\Desktop\tecu2\app.py", line 1291, in generate_report_advanced
+    cat_analysis = df_filtrado.groupby('Categoria').agg({
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\groupby\generic.py", line 1432, in aggregate
+    result = op.agg()
+             ^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 190, in agg
+    return self.agg_dict_like()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 423, in agg_dict_like
+    return self.agg_or_apply_dict_like(op_name="agg")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 1608, in agg_or_apply_dict_like
+    result_index, result_data = self.compute_dict_like(
+                                ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 462, in compute_dict_like
+    func = self.normalize_dictlike_arg(op_name, selected_obj, func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 663, in normalize_dictlike_arg
+    raise KeyError(f"Column(s) {list(cols)} do not exist")
+KeyError: "Column(s) ['No orden'] do not exist"
+2026-03-30 13:51:24,396 - INFO - 🚀 Aplicación TECU Dashboard iniciada
+2026-03-30 13:51:24,399 - INFO - Iniciando procesamiento con SLA: almacén=1, principal=3, otras=5
+2026-03-30 13:51:24,408 - INFO - Filtros aplicados: 166 registros de 166 totales
+2026-03-30 13:51:24,499 - ERROR - Error generando reporte avanzado: "Column(s) ['No orden'] do not exist"
+Traceback (most recent call last):
+  File "C:\Users\AUDAVIALL\Desktop\tecu2\app.py", line 1411, in main
+    mega_buf = generate_report_advanced(df_filtrado, ind_filtrado, ind_global, processor)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\AUDAVIALL\Desktop\tecu2\app.py", line 1291, in generate_report_advanced
+    cat_analysis = df_filtrado.groupby('Categoria').agg({
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\groupby\generic.py", line 1432, in aggregate
+    result = op.agg()
+             ^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 190, in agg
+    return self.agg_dict_like()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 423, in agg_dict_like
+    return self.agg_or_apply_dict_like(op_name="agg")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 1608, in agg_or_apply_dict_like
+    result_index, result_data = self.compute_dict_like(
+                                ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 462, in compute_dict_like
+    func = self.normalize_dictlike_arg(op_name, selected_obj, func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 663, in normalize_dictlike_arg
+    raise KeyError(f"Column(s) {list(cols)} do not exist")
+KeyError: "Column(s) ['No orden'] do not exist"
+2026-03-30 13:51:27,094 - INFO - 🚀 Aplicación TECU Dashboard iniciada
+2026-03-30 13:51:27,098 - INFO - Iniciando procesamiento con SLA: almacén=1, principal=3, otras=5
+2026-03-30 13:51:27,106 - INFO - Filtros aplicados: 166 registros de 166 totales
+2026-03-30 13:51:27,195 - ERROR - Error generando reporte avanzado: "Column(s) ['No orden'] do not exist"
+Traceback (most recent call last):
+  File "C:\Users\AUDAVIALL\Desktop\tecu2\app.py", line 1411, in main
+    mega_buf = generate_report_advanced(df_filtrado, ind_filtrado, ind_global, processor)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\AUDAVIALL\Desktop\tecu2\app.py", line 1291, in generate_report_advanced
+    cat_analysis = df_filtrado.groupby('Categoria').agg({
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\groupby\generic.py", line 1432, in aggregate
+    result = op.agg()
+             ^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 190, in agg
+    return self.agg_dict_like()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 423, in agg_dict_like
+    return self.agg_or_apply_dict_like(op_name="agg")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 1608, in agg_or_apply_dict_like
+    result_index, result_data = self.compute_dict_like(
+                                ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 462, in compute_dict_like
+    func = self.normalize_dictlike_arg(op_name, selected_obj, func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 663, in normalize_dictlike_arg
+    raise KeyError(f"Column(s) {list(cols)} do not exist")
+KeyError: "Column(s) ['No orden'] do not exist"
+2026-03-30 13:51:29,338 - INFO - 🚀 Aplicación TECU Dashboard iniciada
+2026-03-30 13:51:29,342 - INFO - Iniciando procesamiento con SLA: almacén=1, principal=3, otras=5
+2026-03-30 13:51:29,350 - INFO - Filtros aplicados: 129 registros de 166 totales
+2026-03-30 13:51:29,427 - ERROR - Error generando reporte avanzado: "Column(s) ['No orden'] do not exist"
+Traceback (most recent call last):
+  File "C:\Users\AUDAVIALL\Desktop\tecu2\app.py", line 1411, in main
+    mega_buf = generate_report_advanced(df_filtrado, ind_filtrado, ind_global, processor)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\AUDAVIALL\Desktop\tecu2\app.py", line 1291, in generate_report_advanced
+    cat_analysis = df_filtrado.groupby('Categoria').agg({
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\groupby\generic.py", line 1432, in aggregate
+    result = op.agg()
+             ^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 190, in agg
+    return self.agg_dict_like()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 423, in agg_dict_like
+    return self.agg_or_apply_dict_like(op_name="agg")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 1608, in agg_or_apply_dict_like
+    result_index, result_data = self.compute_dict_like(
+                                ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 462, in compute_dict_like
+    func = self.normalize_dictlike_arg(op_name, selected_obj, func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 663, in normalize_dictlike_arg
+    raise KeyError(f"Column(s) {list(cols)} do not exist")
+KeyError: "Column(s) ['No orden'] do not exist"
+2026-03-30 13:51:32,085 - INFO - 🚀 Aplicación TECU Dashboard iniciada
+2026-03-30 13:51:32,088 - INFO - Iniciando procesamiento con SLA: almacén=1, principal=3, otras=5
+2026-03-30 13:51:32,097 - INFO - Filtros aplicados: 76 registros de 166 totales
+2026-03-30 13:51:32,149 - ERROR - Error generando reporte avanzado: "Column(s) ['No orden'] do not exist"
+Traceback (most recent call last):
+  File "C:\Users\AUDAVIALL\Desktop\tecu2\app.py", line 1411, in main
+    mega_buf = generate_report_advanced(df_filtrado, ind_filtrado, ind_global, processor)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\AUDAVIALL\Desktop\tecu2\app.py", line 1291, in generate_report_advanced
+    cat_analysis = df_filtrado.groupby('Categoria').agg({
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\groupby\generic.py", line 1432, in aggregate
+    result = op.agg()
+             ^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 190, in agg
+    return self.agg_dict_like()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 423, in agg_dict_like
+    return self.agg_or_apply_dict_like(op_name="agg")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 1608, in agg_or_apply_dict_like
+    result_index, result_data = self.compute_dict_like(
+                                ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 462, in compute_dict_like
+    func = self.normalize_dictlike_arg(op_name, selected_obj, func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\site-packages\pandas\core\apply.py", line 663, in normalize_dictlike_arg
+    raise KeyError(f"Column(s) {list(cols)} do not exist")
+KeyError: "Column(s) ['No orden'] do not exist"
+2026-03-30 13:52:54,542 - INFO - 🚀 Aplicación TECU Dashboard iniciada

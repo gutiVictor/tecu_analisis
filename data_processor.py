@@ -1,451 +1,367 @@
 """
-Procesador de datos de despachos TECU
+MÓDULO DE PROCESAMIENTO DE DATOS - TECU Aura
 """
 
 import pandas as pd
 import numpy as np
-from utils import (
-    calcular_dias_habiles,
-    determinar_sla_entrega,
-    determinar_area_incumple,
-    evaluar_cumple_nns
-)
-
-# ─────────────────────────────────────────────
-# Mapa flexible de columnas del Excel
-# Clave: nombre canónico interno | Valor: posibles nombres en el Excel
-# ─────────────────────────────────────────────
-COLUMN_MAP = {
-    'Fecha':                 ['fecha', 'fecha compra', 'fecha de compra', 'fecha pedido', 'fecha de pedido'],
-    'Cliente':               ['cliente', 'cliente/proveedor', 'cliente / proveedor', 'nombre cliente'],
-    'Producto':              ['producto', 'referencia', 'codigo producto', 'código producto'],
-    'Descripcion':           ['descripcion del producto', 'descripción del producto', 'descripcion', 'descripción', 'detalle'],
-    'Ciudad':                ['ciudad', 'ciudad entrega', 'ciudad de entrega', 'destino', 'lugar entrega', 'lugar de entrega'],
-    'Status':                ['status', 'status entrega', 'estado', 'estado entrega', 'estatus'],
-    'Transportadora':        ['transportadora', 'transporte', 'operador logístico', 'operador logistico'],
-    'No_Guia':               ['no guia', 'número de guía', 'numero de guia', 'guia', 'guía', 'no. guia'],
-    'Fecha_Despacho':        ['fecha de despacho', 'fecha despacho', 'despacho'],
-    'Fecha_Entrega':         ['fecha de entrega', 'fecha entrega', 'entrega'],
-    'No_Orden':              ['no orden', 'no. orden', 'orden', 'numero orden', 'número orden', 'no_orden'],
-}
-
-MESES_ES = {
-    1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr',
-    5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago',
-    9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'
-}
+from datetime import datetime
+import io
 
 
 class DataProcessor:
-    def __init__(self, df):
+    """Clase principal para procesar datos de despachos TECU."""
+    
+    def __init__(self, df: pd.DataFrame):
+        """Inicializa el procesador con el DataFrame crudo."""
         self.df_original = df.copy()
         self.df_procesado = None
-
-    # ─────────────────────────────────────────
-    # Resolución robusta de columnas
-    # ─────────────────────────────────────────
-    def _resolver_columnas(self, df):
-        """Mapea columnas del Excel a nombres canónicos."""
-        col_lower = {str(c).strip().lower(): c for c in df.columns}
-        rename = {}
-        for canonical, variants in COLUMN_MAP.items():
-            for v in variants:
-                if v in col_lower:
-                    rename[col_lower[v]] = canonical
-                    break
-
-        df = df.rename(columns=rename)
-
-        # Agregar columnas faltantes como None
-        for canonical in COLUMN_MAP:
-            if canonical not in df.columns:
-                df[canonical] = None
-
-        return df
-
-    # ─────────────────────────────────────────
-    # Pipeline principal
-    # ─────────────────────────────────────────
-    def procesar(self, sla_almacen=1, sla_principal=3, sla_otras=5):
-        """Ejecuta todo el pipeline de procesamiento con parámetros de SLA."""
+    
+    def procesar(self, sla_almacen: int = 1, sla_principal: int = 3, sla_otras: int = 5) -> pd.DataFrame:
+        """
+        Procesa el DataFrame aplicando transformaciones y cálculos de SLA.
+        """
         df = self.df_original.copy()
-        df.columns = df.columns.str.strip()
-
-        # Eliminar filas completamente vacías
-        df = df.dropna(how='all')
-
-        # Mapear columnas
-        df = self._resolver_columnas(df)
-
-        # Asegurar tipos de fecha
-        for col_fecha in ['Fecha', 'Fecha_Despacho', 'Fecha_Entrega']:
-            if col_fecha in df.columns:
-                df[col_fecha] = pd.to_datetime(df[col_fecha], errors='coerce')
-
-        # ── Días hábiles ──────────────────────
-        df['Dias_Despacho_Hab'] = df.apply(
-            lambda r: calcular_dias_habiles(r['Fecha'], r['Fecha_Despacho']), axis=1
-        )
-        df['Dias_Entrega_Hab'] = df.apply(
-            lambda r: calcular_dias_habiles(r['Fecha_Despacho'], r['Fecha_Entrega']), axis=1
-        )
-
-        # ── SLA y desvíos ─────────────────────
-        # Nota: El desvío de entrega se calcula DESDE EL DESPACHO para evaluar transportadora
-        df['SLA_Entrega'] = df['Ciudad'].apply(lambda c: determinar_sla_entrega(c, sla_principal, sla_otras))
         
-        df['Desvio_Despacho'] = df.apply(
-            lambda r: (r['Dias_Despacho_Hab'] - sla_almacen)
-            if pd.notna(r['Dias_Despacho_Hab']) else None, axis=1
-        )
-        df['Desvio_Entrega'] = df.apply(
-            lambda r: (r['Dias_Entrega_Hab'] - r['SLA_Entrega'])
-            if pd.notna(r['Dias_Entrega_Hab']) else None, axis=1
-        )
-
-        # ── Cumplimiento NNS ──────────────────
-        # NNS se basa en el cumplimiento global (Compra -> Entrega)
-        # Recalculamos días totales compra->entrega para el indicador NNS
-        def _get_nns(r):
-            dias_totales = calcular_dias_habiles(r['Fecha'], r['Fecha_Entrega'])
-            if pd.isna(dias_totales): return 'PTE'
-            # El SLA total es SLA_Almacén + SLA_Ciudad
-            sla_total = sla_almacen + r['SLA_Entrega']
-            return 'Cumple' if dias_totales <= sla_total else 'No cumple'
-
-        df['Cumple_NNS'] = df.apply(_get_nns, axis=1)
-
-        # ── Área responsable ──────────────────
-        df['Area_Incumple'] = df.apply(
-            lambda r: determinar_area_incumple(
-                r['Desvio_Despacho'], r['Desvio_Entrega'], r['Transportadora']
-            ), axis=1
-        )
-
-        # ── Mes para filtros ──────────────────
-        df['Mes_Sort'] = df['Fecha'].dt.strftime('%Y-%m')
+        # ── LIMPIEZA BÁSICA ──────────────────────────────────────────────
+        df = df.dropna(how='all')  # Eliminar filas completamente vacías
         
-        def _fmt_mes(x):
-            if pd.isna(x): return None
-            # MESES_ES importado de arriba
-            m = MESES_ES.get(x.month, str(x.month))
-            y = str(x.year)[2:]
-            return f"{m}-{y}"
+        # Eliminar filas sin número de orden válido
+        if 'No orden' in df.columns:
+            df = df[df['No orden'].notna()]
+            df['No orden'] = df['No orden'].astype(str).str.strip()
+            df = df[(df['No orden'] != '') & (df['No orden'] != 'nan')]
+        
+        # ── MAPEO DE COLUMNAS ──────────────────────────────────────────────
+        column_mapping = {
+            'No orden': 'No_Orden',
+            'Fecha Venta': 'Fecha',
+            'Cliente/Proveedor': 'Cliente',
+            'Codigo': 'Producto',
+            'Categoria': 'Categoria',
+            'Ciudad': 'Ciudad',
+            'Transportadora': 'Transportadora',
+            'No guia': 'No_Guia',
+            'Fecha de despacho': 'Fecha_Despacho',
+            'Fecha de Entrega': 'Fecha_Entrega',
+            'Status entrega': 'Status_Entrega',
+            'Status Despacho': 'Status_Despacho',
+            'Cumple NNS': 'Cumple_NNS',
+            'Reponsable Incumplimiento': 'Area_Incumple',
+            'Responsable Incumplimiento': 'Area_Incumple',
+            'Valor despacho': 'Valor_despacho',
+            'Causal de Incumplimiento': 'Causal_Incumplimiento',
+            'Observaciones': 'Observaciones',
+            'Concepto': 'Concepto',
+            'Mes': 'Mes_Label',
+        }
+        
+        df = df.rename(columns={k: v for k, v in column_mapping.items() if k in df.columns})
+        
+        # ── CREAR Mes_Sort DESDE Mes_Label (CRÍTICO) ──────────────────────────────────────────────
+        mes_a_numero = {
+            'enero': 1, 'febrero': 2, 'marzo': 3, 'abril': 4,
+            'mayo': 5, 'junio': 6, 'julio': 7, 'agosto': 8,
+            'septiembre': 9, 'octubre': 10, 'noviembre': 11, 'diciembre': 12,
+            'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4,
+            'Mayo': 5, 'Junio': 6, 'Julio': 7, 'Agosto': 8,
+            'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12,
+            'ENERO': 1, 'FEBRERO': 2, 'MARZO': 3, 'ABRIL': 4,
+            'MAYO': 5, 'JUNIO': 6, 'JULIO': 7, 'AGOSTO': 8,
+            'SEPTIEMBRE': 9, 'OCTUBRE': 10, 'NOVIEMBRE': 11, 'DICIEMBRE': 12,
+        }
+        
+        # Crear Mes_Sort desde Mes_Label
+        if 'Mes_Label' in df.columns:
+            df['Mes_Sort'] = df['Mes_Label'].map(mes_a_numero)
+            # Si hay valores NaN, intentar desde Fecha
+            if df['Mes_Sort'].isna().any() and 'Fecha' in df.columns:
+                df['Fecha'] = pd.to_datetime(df['Fecha'], errors='coerce', dayfirst=True)
+                df['Mes_Sort'] = df['Mes_Sort'].fillna(df['Fecha'].dt.month)
+                df['Mes_Label'] = df['Mes_Label'].fillna(df['Fecha'].dt.month_name(locale='es_ES'))
+        elif 'Fecha' in df.columns:
+            df['Fecha'] = pd.to_datetime(df['Fecha'], errors='coerce', dayfirst=True)
+            df['Mes_Sort'] = df['Fecha'].dt.month
+            df['Mes_Label'] = df['Fecha'].dt.month_name(locale='es_ES')
+        else:
+            # Fallback: valores por defecto
+            df['Mes_Sort'] = 1
+            df['Mes_Label'] = 'Enero'
+        
+        # ── VALIDAR QUE Mes_Sort EXISTE ──────────────────────────────────────────────
+        if 'Mes_Sort' not in df.columns:
+            df['Mes_Sort'] = 1
+        if 'Mes_Label' not in df.columns:
+            df['Mes_Label'] = 'Enero'
+        
+        # ── PROCESAR FECHAS ──────────────────────────────────────────────
+        fecha_cols = ['Fecha', 'Fecha_Despacho', 'Fecha_Entrega']
+        for col in fecha_cols:
+            if col in df.columns:
+                df[col] = pd.to_datetime(df[col], errors='coerce', dayfirst=True)
+        
+        # ── NORMALIZAR VALORES MONETARIOS ──────────────────────────────────────────────
+        if 'Valor_despacho' in df.columns:
+            df['Valor_num'] = df['Valor_despacho'].astype(str).str.replace(
+                r'[^\d.]', '', regex=True
+            ).replace('', '0').astype(float)
+        
+        # ── CALCULAR DÍAS DE ENTREGA Y DESPACHO ──────────────────────────────────────────────
+        if 'Fecha' in df.columns and 'Fecha_Entrega' in df.columns:
+            df['Dias_Entrega_Hab'] = (df['Fecha_Entrega'] - df['Fecha']).dt.days
+            df['Dias_Entrega_Hab'] = df['Dias_Entrega_Hab'].clip(lower=0).fillna(0)
+        
+        if 'Fecha' in df.columns and 'Fecha_Despacho' in df.columns:
+            df['Dias_Despacho_Hab'] = (df['Fecha_Despacho'] - df['Fecha']).dt.days
+            df['Dias_Despacho_Hab'] = df['Dias_Despacho_Hab'].clip(lower=0).fillna(0)
+        
+        # ── CALCULAR DESVÍOS ──────────────────────────────────────────────
+        df['Desvio_Entrega'] = 0.0
+        df['Desvio_Despacho'] = 0.0
+        
+        ciudades_principales = ['Bogotá', 'Medellín', 'Cali', 'Bogotá y alrededores']
+        
+        if 'Dias_Entrega_Hab' in df.columns:
+            for idx, row in df.iterrows():
+                if pd.isna(row.get('Fecha_Entrega')):
+                    continue
+                ciudad = str(row.get('Ciudad', '')).lower()
+                dias = row.get('Dias_Entrega_Hab', 0)
+                
+                if any(cp.lower() in ciudad for cp in ciudades_principales):
+                    sla = sla_principal
+                else:
+                    sla = sla_otras
+                
+                if dias > sla:
+                    df.at[idx, 'Desvio_Entrega'] = dias - sla
+        
+        if 'Dias_Despacho_Hab' in df.columns:
+            df['Desvio_Despacho'] = df['Dias_Despacho_Hab'].clip(lower=0)
+            df.loc[df['Desvio_Despacho'] <= sla_almacen, 'Desvio_Despacho'] = 0
+        
+        # ── NORMALIZAR CUMPLIMIENTO NNS ──────────────────────────────────────────────
+        if 'Cumple_NNS' in df.columns:
+            df['Cumple_NNS'] = df['Cumple_NNS'].astype(str).str.strip()
             
-        df['Mes_Label'] = df['Fecha'].apply(_fmt_mes)
-
+            df['Cumple_NNS'] = df['Cumple_NNS'].replace({
+                'CUMPLE': 'Cumple', 'cumple': 'Cumple',
+                'NO CUMPLE': 'No cumple', 'no cumple': 'No cumple',
+                'PTE': 'PTE', 'pte': 'PTE',
+                '#N/D': 'PTE', 'NAN': 'PTE', 'nan': 'PTE',
+                'FALSO': 'PTE', 'Falso': 'PTE', 'falso': 'PTE',
+                '0': 'PTE',
+            })
+            
+            mask_cumple = (df['Cumple_NNS'].isin(['', 'nan', 'NAN'])) & (df['Fecha_Entrega'].notna())
+            df.loc[mask_cumple, 'Cumple_NNS'] = 'Cumple'
+            
+            mask_pte = df['Fecha_Entrega'].isna()
+            df.loc[mask_pte, 'Cumple_NNS'] = 'PTE'
+        else:
+            df['Cumple_NNS'] = 'PTE'
+        
+        # ── NORMALIZAR ÁREA DE INCUMPLIMIENTO ──────────────────────────────────────────────
+        if 'Area_Incumple' in df.columns:
+            df['Area_Incumple'] = df['Area_Incumple'].astype(str).str.strip()
+            df.loc[df['Cumple_NNS'] == 'Cumple', 'Area_Incumple'] = ''
+        else:
+            df['Area_Incumple'] = ''
+        
+        # ── NORMALIZAR CAUSAL DE INCUMPLIMIENTO ──────────────────────────────────────────────
+        if 'Causal_Incumplimiento' not in df.columns:
+            df['Causal_Incumplimiento'] = ''
+        
+        # ── GUARDAR DATAFRAME PROCESADO ──────────────────────────────────────────────
         self.df_procesado = df
         return df
-
-    # ─────────────────────────────────────────
-    # Helper: filtrar entregados de forma segura
-    # ─────────────────────────────────────────
-    def _filtrar_entregados(self, df):
-        """Retorna SOLO filas con Status == 'Entregado'.
-        Si no hay ninguna, retorna un DataFrame vacío (NO el original)."""
-        if 'Status' not in df.columns:
-            return df
-        mask = df['Status'].astype(str).str.strip().str.lower() == 'entregado'
-        return df[mask]
-
-    # ─────────────────────────────────────────
-    # Indicadores (recibe df ya filtrado)
-    # ─────────────────────────────────────────
-    def get_indicadores(self, df=None):
-        if df is None:
-            df = self.df_procesado
+    
+    def get_indicadores(self, df: pd.DataFrame) -> dict:
+        """Calcula los KPIs principales del dashboard."""
         if df is None or len(df) == 0:
-            return None
-
-        df_ent = self._filtrar_entregados(df)
-        total = len(df_ent)
-        if total == 0:
-            return None
-
-        cumplen = (df_ent['Cumple_NNS'] == 'Cumple').sum()
-        no_cumplen = (df_ent['Cumple_NNS'] == 'No cumple').sum()
-        pendientes = (df_ent['Cumple_NNS'] == 'PTE').sum()
-
-        des_desp = df_ent[df_ent['Desvio_Despacho'] > 0]
-        des_entr = df_ent[df_ent['Desvio_Entrega'] > 0]
-
-        return {
-            'total_pedidos': int(total),
-            'cumplen_nns': int(cumplen),
-            'no_cumplen_nns': int(no_cumplen),
-            'pendientes': int(pendientes),
-            'pct_cumplimiento': float(round((cumplen / total * 100), 1)) if total > 0 else 0.0,
-            'con_desvio_despacho': int(len(des_desp)),
-            'con_desvio_entrega': int(len(des_entr)),
-            'promedio_desvio_despacho': float(round(des_desp['Desvio_Despacho'].mean(), 1)) if len(des_desp) > 0 else 0.0,
-            'promedio_desvio_entrega': float(round(des_entr['Desvio_Entrega'].mean(), 1)) if len(des_entr) > 0 else 0.0,
-            'max_desvio_despacho': int(des_desp['Desvio_Despacho'].max()) if len(des_desp) > 0 else 0,
-            'max_desvio_entrega': int(des_entr['Desvio_Entrega'].max()) if len(des_entr) > 0 else 0,
-        }
-
-    # ─────────────────────────────────────────
-    # Análisis por ciudad
-    # ─────────────────────────────────────────
-    def get_analisis_ciudad(self, df=None):
-        if df is None:
-            df = self.df_procesado
-        if df is None:
-            return None
-
-        df_e = self._filtrar_entregados(df)
-
-        agg = df_e.groupby('Ciudad').agg(
-            Total=('Cumple_NNS', 'count'),
-            Cumplen=('Cumple_NNS', lambda x: (x == 'Cumple').sum()),
-            Desvio_Prom=('Desvio_Entrega', 'mean')
-        ).reset_index()
-        agg['No_Cumplen'] = agg['Total'] - agg['Cumplen']
-        agg['Pct_Cumplimiento'] = (agg['Cumplen'] / agg['Total'] * 100).round(1)
-        agg['Desvio_Prom'] = agg['Desvio_Prom'].round(2)
-        return agg.sort_values('Total', ascending=False)
-
-    # ─────────────────────────────────────────
-    # Análisis por transportadora
-    # ─────────────────────────────────────────
-    def get_analisis_transportadora(self, df=None):
-        if df is None:
-            df = self.df_procesado
-        if df is None:
-            return None
-
-        df_e = self._filtrar_entregados(df)
-
-        agg = df_e.groupby('Transportadora').agg(
-            Total=('Cumple_NNS', 'count'),
-            Cumplen=('Cumple_NNS', lambda x: (x == 'Cumple').sum()),
-            Desvio_Prom=('Desvio_Entrega', 'mean')
-        ).reset_index()
-        agg['No_Cumplen'] = agg['Total'] - agg['Cumplen']
-        agg['Pct_Cumplimiento'] = (agg['Cumplen'] / agg['Total'] * 100).round(1)
-        agg['Desvio_Prom'] = agg['Desvio_Prom'].round(2)
-        return agg.sort_values('Total', ascending=False)
-
-    # ─────────────────────────────────────────
-    # Tendencia mensual
-    # ─────────────────────────────────────────
-    def get_analisis_mes(self, df=None):
-        if df is None:
-            df = self.df_procesado
-        if df is None or 'Mes_Sort' not in df.columns:
-            return None
-
-        df_e = self._filtrar_entregados(df)
-
-        agg = df_e.groupby(['Mes_Sort', 'Mes_Label']).agg(
-            Total=('Cumple_NNS', 'count'),
-            Cumplen=('Cumple_NNS', lambda x: (x == 'Cumple').sum()),
-            Desvio_Prom_Entrega=('Desvio_Entrega', 'mean'),
-            Desvio_Prom_Despacho=('Desvio_Despacho', 'mean'),
-        ).reset_index()
-        agg['Pct_Cumplimiento'] = (agg['Cumplen'] / agg['Total'] * 100).round(1)
-        agg = agg.sort_values('Mes_Sort')
-        return agg
-
-    # ─────────────────────────────────────────
-    # Pedidos con incumplimiento
-    # ─────────────────────────────────────────
-    def get_pedidos_incumplimiento(self, df=None):
-        if df is None:
-            df = self.df_procesado
-        if df is None:
-            return None
-
-        df_e = self._filtrar_entregados(df)
-        inc = df_e[df_e['Cumple_NNS'] == 'No cumple'].copy()
-
-        cols = [c for c in [
-            'Fecha', 'No_Orden', 'Cliente', 'Producto', 'Descripcion',
-            'Ciudad', 'Transportadora', 'No_Guia',
-            'Fecha_Despacho', 'Fecha_Entrega',
-            'Dias_Despacho_Hab', 'Dias_Entrega_Hab',
-            'SLA_Entrega', 'Desvio_Despacho', 'Desvio_Entrega',
-            'Cumple_NNS', 'Area_Incumple', 'Mes_Label'
-        ] if c in inc.columns]
-
-        return inc[cols]
-
-    # ─────────────────────────────────────────
-    # Recomendaciones de mejora
-    # ─────────────────────────────────────────
-    def get_recomendaciones(self, df=None):
-        if df is None:
-            df = self.df_procesado
-        if df is None:
-            return []
-
-        df_e = self._filtrar_entregados(df)
-        total = len(df_e)
-        if total == 0:
-            return []
-
-        recs = []
-        cumplen = (df_e['Cumple_NNS'] == 'Cumple').sum()
-        pct = round(cumplen / total * 100, 1) if total > 0 else 0
-
-        # ── Cumplimiento global ──
-        if pct >= 90:
-            recs.append(('✅ Excelente desempeño',
-                         f'El {pct}% de cumplimiento NNS supera el objetivo de 80%. Mantener el nivel actual.',
-                         'success'))
-        elif pct >= 80:
-            recs.append(('✅ Cumplimiento dentro del objetivo',
-                         f'{pct}% de cumplimiento NNS. Hay margen de mejora para alcanzar 90%+.',
-                         'info'))
+            return {
+                'total_pedidos': 0, 'pct_cumplimiento': 0.0, 'cumplen_nns': 0,
+                'con_desvio_despacho': 0, 'promedio_desvio_despacho': 0.0,
+                'con_desvio_entrega': 0, 'promedio_desvio_entrega': 0.0, 'pendientes': 0,
+            }
+        
+        total_pedidos = len(df)
+        
+        if 'Cumple_NNS' in df.columns:
+            cumplen = len(df[df['Cumple_NNS'] == 'Cumple'])
+            no_cumplen = len(df[df['Cumple_NNS'] == 'No cumple'])
+            pendientes = len(df[df['Cumple_NNS'] == 'PTE'])
+            pct_cumplimiento = round((cumplen / len(df) * 100), 1) if len(df) > 0 else 0.0
         else:
-            recs.append(('⚠️ Cumplimiento por debajo del objetivo',
-                         f'Solo el {pct}% cumple NNS. Meta mínima: 80%. Se requiere acción inmediata.',
-                         'warning'))
-
-        # ── Peor transportadora ──
-        try:
-            analisis_t = self.get_analisis_transportadora(df)
-            if analisis_t is not None and len(analisis_t) > 0:
-                peor_t = analisis_t.sort_values('Pct_Cumplimiento').iloc[0]
-                if peor_t['Pct_Cumplimiento'] < 70 and peor_t['Total'] >= 3:
+            cumplen = no_cumplen = pendientes = 0
+            pct_cumplimiento = 0.0
+        
+        if 'Desvio_Despacho' in df.columns:
+            con_desvio_despacho = len(df[df['Desvio_Despacho'] > 0])
+            promedio_desvio_despacho = round(
+                df.loc[df['Desvio_Despacho'] > 0, 'Desvio_Despacho'].mean(), 1
+            ) if con_desvio_despacho > 0 else 0.0
+        else:
+            con_desvio_despacho = 0
+            promedio_desvio_despacho = 0.0
+        
+        if 'Desvio_Entrega' in df.columns:
+            con_desvio_entrega = len(df[df['Desvio_Entrega'] > 0])
+            promedio_desvio_entrega = round(
+                df.loc[df['Desvio_Entrega'] > 0, 'Desvio_Entrega'].mean(), 1
+            ) if con_desvio_entrega > 0 else 0.0
+        else:
+            con_desvio_entrega = 0
+            promedio_desvio_entrega = 0.0
+        
+        return {
+            'total_pedidos': total_pedidos,
+            'pct_cumplimiento': pct_cumplimiento,
+            'cumplen_nns': cumplen,
+            'no_cumplen_nns': no_cumplen,
+            'con_desvio_despacho': con_desvio_despacho,
+            'promedio_desvio_despacho': promedio_desvio_despacho,
+            'con_desvio_entrega': con_desvio_entrega,
+            'promedio_desvio_entrega': promedio_desvio_entrega,
+            'pendientes': pendientes,
+        }
+    
+    def get_analisis_ciudad(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Genera análisis de cumplimiento agrupado por ciudad."""
+        if 'Ciudad' not in df.columns or len(df) == 0:
+            return pd.DataFrame()
+        
+        analisis = df.groupby('Ciudad').agg(
+            Total=('No_Orden', 'count'),
+            Cumplen=('Cumple_NNS', lambda x: (x == 'Cumple').sum()),
+            No_Cumplen=('Cumple_NNS', lambda x: (x == 'No cumple').sum())
+        ).reset_index()
+        
+        analisis['Pct_Cumplimiento'] = round(analisis['Cumplen'] / analisis['Total'] * 100, 1)
+        analisis = analisis.sort_values('Total', ascending=False)
+        
+        return analisis
+    
+    def get_analisis_transportadora(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Genera análisis de desempeño por transportadora."""
+        if 'Transportadora' not in df.columns or len(df) == 0:
+            return pd.DataFrame()
+        
+        analisis = df.groupby('Transportadora').agg(
+            Total=('No_Orden', 'count'),
+            Cumplen=('Cumple_NNS', lambda x: (x == 'Cumple').sum()),
+            Desvio_Prom=('Desvio_Entrega', 'mean')
+        ).reset_index()
+        
+        analisis['Pct_Cumplimiento'] = round(analisis['Cumplen'] / analisis['Total'] * 100, 1)
+        analisis['Desvio_Prom'] = analisis['Desvio_Prom'].fillna(0).round(1)
+        analisis = analisis.sort_values('Total', ascending=False)
+        
+        return analisis
+    
+    def get_pedidos_incumplimiento(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Filtra y retorna solo los pedidos con incumplimiento."""
+        if 'Cumple_NNS' not in df.columns or len(df) == 0:
+            return pd.DataFrame()
+        
+        inc = df[df['Cumple_NNS'] == 'No cumple'].copy()
+        return inc
+    
+    def get_analisis_mes(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Genera análisis de tendencia mensual."""
+        if 'Mes_Label' not in df.columns or 'Mes_Sort' not in df.columns or len(df) == 0:
+            return pd.DataFrame()
+        
+        analisis = df.groupby(['Mes_Sort', 'Mes_Label']).agg(
+            Total=('No_Orden', 'count'),
+            Cumplen=('Cumple_NNS', lambda x: (x == 'Cumple').sum())
+        ).reset_index()
+        
+        analisis['Pct_Cumplimiento'] = round(analisis['Cumplen'] / analisis['Total'] * 100, 1)
+        analisis = analisis.sort_values('Mes_Sort')
+        
+        return analisis
+    
+    def get_recomendaciones(self, df: pd.DataFrame) -> list:
+        """Genera recomendaciones automáticas basadas en los datos."""
+        recs = []
+        
+        if len(df) == 0:
+            return recs
+        
+        ind = self.get_indicadores(df)
+        
+        if ind['pct_cumplimiento'] < 70:
+            recs.append((
+                "🔴 Cumplimiento Crítico",
+                f"El cumplimiento actual es {ind['pct_cumplimiento']}%. Revisar procesos urgentemente.",
+                "error"
+            ))
+        elif ind['pct_cumplimiento'] < 80:
+            recs.append((
+                "⚠️ Cumplimiento por Debajo de Meta",
+                f"El cumplimiento es {ind['pct_cumplimiento']}% (meta: 80%). Enfocar esfuerzos en reducir desvíos.",
+                "warning"
+            ))
+        else:
+            recs.append((
+                "✅ Cumplimiento en Meta",
+                f"El cumplimiento es {ind['pct_cumplimiento']}%. Continuar con las prácticas actuales.",
+                "success"
+            ))
+        
+        if ind['promedio_desvio_entrega'] > 5:
+            recs.append((
+                "⚠️ Desvíos de Entrega Elevados",
+                f"El desvío promedio es {ind['promedio_desvio_entrega']} días. Evaluar capacidad de transporte.",
+                "warning"
+            ))
+        
+        if 'Area_Incumple' in df.columns:
+            inc = df[df['Cumple_NNS'] == 'No cumple']
+            if len(inc) > 0:
+                areas = inc['Area_Incumple'].value_counts()
+                if len(areas) > 0:
+                    top_area = areas.index[0]
+                    top_count = areas.iloc[0]
+                    pct = round(top_count / len(inc) * 100, 1)
                     recs.append((
-                        f'🚚 Transportadora crítica: {peor_t["Transportadora"]}',
-                        f'{peor_t["Transportadora"]} tiene solo {peor_t["Pct_Cumplimiento"]}% de cumplimiento '
-                        f'({int(peor_t["No_Cumplen"])} incumplimientos de {int(peor_t["Total"])} pedidos). '
-                        f'Desvío promedio: {peor_t["Desvio_Prom"]:.1f} días. '
-                        'Revisar contrato y evaluar alternativas.',
-                        'error'
+                        f"🎯 Área de Mejora: {top_area}",
+                        f"El {pct}% de los incumplimientos son responsabilidad de '{top_area}'.",
+                        "info"
                     ))
-        except Exception:
-            pass
-
-        # ── Peor ciudad ──
-        try:
-            analisis_c = self.get_analisis_ciudad(df)
-            if analisis_c is not None and len(analisis_c) > 0:
-                peor_c = analisis_c.sort_values('Pct_Cumplimiento').iloc[0]
-                if peor_c['Pct_Cumplimiento'] < 70 and peor_c['Total'] >= 3:
-                    sla_ciud = 3 if peor_c["Pct_Cumplimiento"] < 80 else 5
-                    recs.append((
-                        f'📍 Ciudad con más fallos: {peor_c["Ciudad"]}',
-                        f'{peor_c["Ciudad"]} tiene {peor_c["Pct_Cumplimiento"]}% de cumplimiento '
-                        f'({int(peor_c["No_Cumplen"])} de {int(peor_c["Total"])} pedidos fuera de SLA). '
-                        'Verificar cobertura de la transportadora y rutas.',
-                        'warning'
-                    ))
-        except Exception:
-            pass
-
-        # ── Desvío de despacho ──
-        try:
-            des_desp = df_e[df_e['Desvio_Despacho'] > 0]
-            pct_desp = round(len(des_desp) / total * 100, 1)
-            if pct_desp > 20:
-                prom_desp = des_desp['Desvio_Despacho'].mean()
-                recs.append((
-                    '📦 Alto desvío en despacho (Almacén)',
-                    f'{pct_desp}% de los pedidos tarda más de 1 día hábil en ser despachado. '
-                    f'Promedio de retraso: {prom_desp:.1f} días. '
-                    'Revisar proceso de picking, alistamiento y horarios de corte.',
-                    'warning'
-                ))
-        except Exception:
-            pass
-
-        # ── Tendencia mes a mes ──
-        try:
-            analisis_m = self.get_analisis_mes(df)
-            if analisis_m is not None and len(analisis_m) >= 2:
-                ult_mes = analisis_m.iloc[-1]
-                pen_mes = analisis_m.iloc[-2]
-                delta = round(ult_mes['Pct_Cumplimiento'] - pen_mes['Pct_Cumplimiento'], 1)
-                if delta < -10:
-                    recs.append((
-                        f'📉 Caída en cumplimiento: {ult_mes["Mes_Label"]}',
-                        f'El mes {ult_mes["Mes_Label"]} bajó {abs(delta)} puntos porcentuales respecto a {pen_mes["Mes_Label"]}. '
-                        'Analizar causas: temporada alta, cambio de transportadora, o problemas de inventario.',
-                        'error'
-                    ))
-                elif delta > 10:
-                    recs.append((
-                        f'📈 Mejora notable en {ult_mes["Mes_Label"]}',
-                        f'El mes {ult_mes["Mes_Label"]} mejoró {delta} puntos respecto a {pen_mes["Mes_Label"]}. '
-                        'Identificar qué prácticas mejoraron el desempeño y replicarlas.',
-                        'success'
-                    ))
-        except Exception:
-            pass
-
+        
         return recs
-
-    # ─────────────────────────────────────────
-    # MEGA REPORTE (Exportación v1.7)
-    # ─────────────────────────────────────────
-    def generate_mega_report(self, df_filtrado, ind_filtrado, ind_global):
-        """
-        Genera un objeto BytesIO con un Excel de múltiples pestañas.
-        """
-        import io
+    
+    def generate_mega_report(self, df_filtrado: pd.DataFrame, ind_filtrado: dict, ind_global: dict) -> io.BytesIO:
+        """Genera archivo Excel con múltiples hojas de análisis."""
         buf = io.BytesIO()
         
-        with pd.ExcelWriter(buf, engine='xlsxwriter') as writer:
-            # 1. Resumen Ejecutivo (KPIs)
-            resumen_data = {
-                'Métrica': [
-                    'Total Pedidos', '% Cumplimiento NNS', 'Pedidos Cumplen', 
-                    'Pedidos No Cumplen', 'Pendientes (PTE)',
-                    'Pedidos con Desvío Despacho', 'Promedio Desvío Despacho (días)',
-                    'Pedidos con Desvío Entrega', 'Promedio Desvío Entrega (días)'
+        with pd.ExcelWriter(buf, engine='openpyxl') as writer:
+            resumen = pd.DataFrame({
+                'Métrica': ['Total Pedidos', 'Cumplimiento NNS', 'Desvío Promedio Entrega'],
+                'Valor Filtrado': [
+                    ind_filtrado['total_pedidos'],
+                    f"{ind_filtrado['pct_cumplimiento']}%",
+                    f"{ind_filtrado['promedio_desvio_entrega']} días"
                 ],
-                'Selección Actual': [
-                    ind_filtrado['total_pedidos'], f"{ind_filtrado['pct_cumplimiento']}%",
-                    ind_filtrado['cumplen_nns'], ind_filtrado['no_cumplen_nns'],
-                    ind_filtrado['pendientes'], ind_filtrado['con_desvio_despacho'],
-                    ind_filtrado['promedio_desvio_despacho'], ind_filtrado['con_desvio_entrega'],
-                    ind_filtrado['promedio_desvio_entrega']
-                ],
-                'Total General': [
-                    ind_global['total_pedidos'], f"{ind_global['pct_cumplimiento']}%",
-                    ind_global['cumplen_nns'], ind_global['no_cumplen_nns'],
-                    ind_global['pendientes'], ind_global['con_desvio_despacho'],
-                    ind_global['promedio_desvio_despacho'], ind_global['con_desvio_entrega'],
-                    ind_global['promedio_desvio_entrega']
+                'Valor Global': [
+                    ind_global['total_pedidos'],
+                    f"{ind_global['pct_cumplimiento']}%",
+                    f"{ind_global['promedio_desvio_entrega']} días"
                 ]
-            }
-            pd.DataFrame(resumen_data).to_excel(writer, sheet_name='Resumen Ejecutivo', index=False)
+            })
+            resumen.to_excel(writer, sheet_name='Resumen', index=False)
+            df_filtrado.to_excel(writer, sheet_name='Datos', index=False)
             
-            # 2. Recomendaciones
-            recs = self.get_recomendaciones(df_filtrado)
-            if recs:
-                recs_df = pd.DataFrame(recs, columns=['Título', 'Detalle', 'Nivel'])
-                recs_df.to_excel(writer, sheet_name='Hallazgos y Recomendaciones', index=False)
+            if 'Ciudad' in df_filtrado.columns:
+                ciudad_analysis = self.get_analisis_ciudad(df_filtrado)
+                if len(ciudad_analysis) > 0:
+                    ciudad_analysis.to_excel(writer, sheet_name='Por Ciudad', index=False)
             
-            # 3. Análisis por Ciudad
-            df_ciud = self.get_analisis_ciudad(df_filtrado)
-            if df_ciud is not None:
-                df_ciud.to_excel(writer, sheet_name='Análisis por Ciudad', index=False)
-                
-            # 4. Análisis por Transportadora
-            df_trans = self.get_analisis_transportadora(df_filtrado)
-            if df_trans is not None:
-                df_trans.to_excel(writer, sheet_name='Análisis por Transportadora', index=False)
-                
-            # 5. Base Completa (Filtrada)
-            df_filtrado.to_excel(writer, sheet_name='Base de Datos (Selección)', index=False)
-            
-            # Ajustar anchos de columna (opcional pero profesional)
-            workbook = writer.book
-            header_format = workbook.add_format({'bold': True, 'bg_color': '#D7E4BC', 'border': 1})
-            
-            for sheet in writer.sheets.values():
-                sheet.set_column('A:Z', 20)
-
+            if 'Transportadora' in df_filtrado.columns:
+                transp_analysis = self.get_analisis_transportadora(df_filtrado)
+                if len(transp_analysis) > 0:
+                    transp_analysis.to_excel(writer, sheet_name='Por Transportadora', index=False)
+        
         buf.seek(0)
         return buf
-
-    def exportar_excel(self, path, df=None):
-        if df is None:
-            df = self.df_procesado
-        if df is not None:
-            df.to_excel(path, index=False, sheet_name='Base Analizada')
-            return True
-        return False
